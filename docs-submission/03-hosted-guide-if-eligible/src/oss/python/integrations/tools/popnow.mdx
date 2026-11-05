@@ -1,0 +1,152 @@
+---
+title: PopNow integration
+description: Integrate with the PopNow image, video, music and speech generation tools using LangChain Python.
+integration:
+  name: PopNow
+  pypi: langchain-popnow
+---
+
+This guide shows how to get started with the [PopNow](https://popnow.ai) [tools](/oss/langchain/tools). For every class, parameter and setting, see the [langchain-popnow README](https://github.com/popnow-ai/langchain-popnow#readme).
+
+## Overview
+
+[PopNow](https://popnow.ai) is an AI media platform with one API for image, video, music and speech models, including Nano Banana, GPT Image, Seedream, Kling, MiniMax H3, Seedance, Wan, Veo, Suno and Gemini TTS. Calls are billed per task in USD from a prepaid API balance. Prices for each model are listed on the [PopNow AI price index](https://popnow.ai/ai-price-index).
+
+### Details
+
+| Class | Package | Serializable | JS support | Downloads | Version |
+| :--- | :--- | :---: | :---: | :---: | :---: |
+| [`PopNowToolkit`](https://github.com/popnow-ai/langchain-popnow#tools) | [`langchain-popnow`](https://pypi.org/project/langchain-popnow/) | ❌ | ❌ | ![PyPI - Downloads](https://img.shields.io/pypi/dm/langchain-popnow?style=flat-square&label=%20) | ![PyPI - Version](https://img.shields.io/pypi/v/langchain-popnow?style=flat-square&label=%20) |
+
+### Features
+
+- `PopNowImageGeneration`: generate images from text, or edit images passed as URLs
+- `PopNowVideoGeneration`: text-to-video, or image-to-video when an `image_url` is passed
+- `PopNowMusicGeneration`: songs and instrumentals, with optional lyrics
+- `PopNowSpeech`: text-to-speech in many voices and languages
+- `PopNowCreateTask`: run any PopNow model by its exact model ID
+- `PopNowListModels`, `PopNowGetTask`, `PopNowCheckBalance`: free catalog, task lookup and balance tools
+- Every paid call returns a USD quote first and only runs after an explicit `max_usd` approval
+- Sync and async
+
+---
+
+## Setup
+
+To use the PopNow tools, create an API key at [popnow.ai/api](https://popnow.ai/api), add funds to the API balance, and install the `langchain-popnow` integration package.
+
+### Credentials
+
+```python Set API key icon="key"
+import getpass
+import os
+
+if "POPNOW_API_KEY" not in os.environ:
+    os.environ["POPNOW_API_KEY"] = getpass.getpass("Enter your PopNow API key: ")
+```
+
+To trace your tool calls, you can also set your [LangSmith](/langsmith/observability) API key. This is optional:
+
+```python Enable tracing icon="flask"
+os.environ["LANGSMITH_API_KEY"] = getpass.getpass("Enter your LangSmith API key: ")
+os.environ["LANGSMITH_TRACING"] = "true"
+```
+
+### Installation
+
+The PopNow tools live in the `langchain-popnow` package:
+
+<CodeGroup>
+    ```python pip
+    pip install -U langchain-popnow
+    ```
+    ```python uv
+    uv add langchain-popnow
+    ```
+</CodeGroup>
+
+---
+
+## Instantiation
+
+```python Initialize tool instance icon="robot"
+from langchain_popnow import PopNowImageGeneration, PopNowToolkit
+
+tool = PopNowImageGeneration(max_usd_per_call="1.00")
+
+# Or every PopNow tool with one shared configuration:
+tools = PopNowToolkit(max_usd_per_call="1.00").get_tools()
+```
+
+`max_usd_per_call` is an optional hard ceiling: a quote above it is refused even if the agent approves a higher amount.
+
+---
+
+## Invocation
+
+### Directly
+
+A paid tool called without `max_usd` returns the price and starts nothing. To run the task, call it again with `max_usd` set to the approved amount:
+
+```python Call tool icon="rocket"
+tool.invoke({"prompt": "A small red fox curled up in a teacup, soft morning light"})
+# '{"status": "needs_confirmation", "model": "google/nano-banana-2.1/text-to-image", "cost_usd": "0.048", ...}'
+
+tool.invoke({"prompt": "A small red fox curled up in a teacup, soft morning light", "max_usd": "0.048"})
+# '{"status": "succeeded", "task_id": "...", "cost_usd": "0.048", "outputs": [{"url": "https://...", "uri": "popnow://g/.../0"}], ...}'
+```
+
+### As a ToolCall
+
+When invoked with a model-generated `ToolCall`, the tool returns a @[`ToolMessage`]. Its `content` is the JSON summary, and its `artifact` is the full PopNow task or quote record:
+
+```python ToolCall icon="briefcase"
+model_generated_tool_call = {
+    "args": {"prompt": "A paper boat on a calm lake at dawn"},
+    "id": "1",
+    "name": tool.name,
+    "type": "tool_call",
+}
+tool.invoke(model_generated_tool_call)
+```
+
+### Within an agent
+
+```python Agent with tool icon="robot"
+from langchain.agents import create_agent
+from langchain_popnow import PopNowToolkit
+
+agent = create_agent(
+    model="claude-sonnet-4-6",
+    tools=PopNowToolkit(max_usd_per_call="1.00").get_tools(),
+    system_prompt=(
+        "You create media with PopNow tools. Paid tools return a price first: "
+        "show it to the user and only call again with max_usd after they approve."
+    ),
+)
+
+agent.invoke(
+    {"messages": [{"role": "user", "content": "Make a 5 second clip of a lighthouse in a storm"}]}
+)
+```
+
+---
+
+## Quotes and long-running tasks
+
+PopNow tasks are asynchronous. Each paid tool requests a quote, creates the task with that quote locked, and waits up to `wait_timeout` seconds (600 by default). If a video is still rendering when the wait ends, the tool returns `status: "running"` with a `task_id`. The agent can then call `popnow_get_task` to collect the result. Failed or expired tasks release their hold and cost nothing.
+
+For unattended pipelines, `auto_approve_usd` lets quotes at or below that amount run without `max_usd`:
+
+```python Auto approve small calls icon="gear"
+from langchain_popnow import PopNowSpeech
+
+speech = PopNowSpeech(auto_approve_usd="0.02")
+speech.invoke({"text": "Welcome back to the channel!", "voice_id": "Kore"})
+```
+
+---
+
+## API reference
+
+For all classes and settings, see the [langchain-popnow README](https://github.com/popnow-ai/langchain-popnow#readme). For the underlying REST API, see the [PopNow API docs](https://popnow.ai/docs).

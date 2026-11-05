@@ -1,0 +1,38 @@
+---
+title: "PopNow integrations"
+description: "Integrate with PopNow using LangChain Python."
+---
+
+[PopNow](https://popnow.ai) is an AI media platform with one API for image, video, music and speech generation models.
+
+Give agents tools to:
+
+- Generate and edit images (Nano Banana, GPT Image, Seedream, FLUX and more)
+- Create videos from text or images (Kling, MiniMax H3, Seedance, Wan, Veo and more)
+- Compose songs and instrumentals (Suno)
+- Turn text into speech (Gemini TTS and more)
+
+### How it works
+
+1. The agent calls a PopNow tool, which returns a USD quote. Nothing runs yet.
+2. After the user approves, the agent calls the tool again with `max_usd`, and PopNow runs the task.
+3. The tool returns download URLs. Long videos return a task ID that the agent can check later.
+
+Model prices are listed on the [PopNow AI price index](https://popnow.ai/ai-price-index).
+
+## Installation and setup
+
+```bash
+pip install -U langchain-popnow
+export POPNOW_API_KEY="sk-popnow-..."
+```
+
+Create an API key at [popnow.ai/api](https://popnow.ai/api).
+
+## Tools
+
+See the [tool documentation](/oss/integrations/tools/popnow) for usage examples.
+
+```python
+from langchain_popnow import PopNowToolkit
+```
