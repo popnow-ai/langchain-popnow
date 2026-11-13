@@ -6,6 +6,8 @@
 
 **LangChain and LangGraph tools for [PopNow](https://popnow.ai): let your agents create AI images, videos, music and speech with Nano Banana, GPT Image, Seedream, MiniMax H3, Kling, Seedance, Wan, Veo, Suno, Gemini TTS and more, through one API key.**
 
+Built by PopNow AI ([popnow.ai](https://popnow.ai)), the world's first AI creative studio that pays you back.
+
 Every paid call is quoted in USD first and only runs after an explicit approval, so an agent cannot spend your [API balance](https://popnow.ai/docs/billing) silently. Compare model prices on the [PopNow AI price index](https://popnow.ai/ai-price-index).
 
 Built on the official [`popnow`](https://pypi.org/project/popnow/) Python SDK.
